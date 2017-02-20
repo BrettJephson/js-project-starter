@@ -1,0 +1,26 @@
+{
+  "name": "project-starter",
+  "version": "0.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "scripts": {
+    "create": "node scripts/setup.js",
+    "create:universal": "npm run create -- -universal",
+    "create:client": "npm run create -- -client",
+    "create:server": "npm run create -- -server",
+    "preversion": "npm test",
+    "postversion": "git push && git push --tags",
+    "prebuild": "npm run clean",
+    "clean": "rimraf dist",
+    "build": "mkdir dist",
+    "test": "npm run lint",
+    "lint": "eslint src",
+    "start": "npm run server",
+    "server": "browser-sync start --config bs-config.js"
+  },
+  "dependencies": {
+    "browser-sync": "^2.18.8",
+    "eslint": "^3.15.0",
+    "rimraf": "^2.6.0"
+  }
+}
