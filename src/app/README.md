@@ -1,1 +1,0 @@
-** Add clientside app content **
