@@ -4,18 +4,24 @@ const async = require("async");
 
 const DEFAULT_OPTIONS = "universal";
 
+/**
+ * Config options.
+ */
 const options = {
     universal: {
-        files: ["src/app/README.md", "src/server/README.md"]
+        files: [ "src/app/README.md", "test/app/.keep", "src/server/README.md", "test/server/.keep" ]
     },
     server: {
-        files: ["src/server/README.md"]
+        files: [ "src/server/README.md", "test/server/.keep" ]
     },
     client: {
-        files: ["src/app/README.md"]
+        files: [ "src/app/README.md", "test/app/.keep" ]
     }
 };
 
+/**
+ * Maps content of a file to its path.
+ */
 const content = {
     "src/app/README.md": "** Add clientside app content **",
     "src/server/README.md": "** Add serverside app content **"
@@ -42,7 +48,7 @@ function getScaffoldingOptionsFromArgs(args) {
 
 /**
  * Creates a file/directory structure for source code within this project.
- * @param {Object} options 
+ * @param {Object} options Configuration options.
  */
 function createSrcScaffolding(options) {
     async.each(options.files, createAbsentFile);
@@ -50,45 +56,35 @@ function createSrcScaffolding(options) {
 
 /**
  * Writes to a file location but only if the file does not exist.
- * @param {string} file
- * @param {Function} done A callback.
+ * @param {string} file Where to create file if it is absent.
+ * @param {Function} done A callback to trigger upon completion.
  */
 function createAbsentFile(file, done) {
     fs.open(file, "wx", (err, fileData) => {
         if (err) {
-            if (err.code === "EEXIST") {
-                console.log("createAbsentFile:: Skipping file: " + file + " - already exists");
-                return;
-            }
-
-            if (err.code === "ENOENT") {
-                makeDirectory(path.dirname(file), () => {
-                    fs.writeFile(file, content[file], err => {
-                        if (err) {
-                            console.log("createAbsentFile:: " + err);
-                        }
-                        else {
-                            console.log("createAbsentFile:: File " + file + " created");
-                        }
-                        done();
-                    });
-                });
-                return;
-            }
-
-            throw err;
+            return handleFileOpenErrors(err, file, done);
         }
-
-        fs.writeFile(file, content[file], err => {
-            if (err) {
-                console.log("createAbsentFile:: " + err);
-            }
-            else {
-                console.log("createAbsentFile:: File " + file + " created");
-            }
-            done();
-        });
+        fs.writeFile(file, content[file], err => handleWriteFile(err, file, done));
     });
+}
+
+/**
+ * @param {Object} err Error details.
+ * @param {string} file
+ * @param {Function} done A callback to trigger upon completion.
+ */
+function handleFileOpenErrors(err, file, done) {
+    if (err.code === "EEXIST") { // file already exists so moving on.
+        //done();
+        return;
+    }
+    if (err.code === "ENOENT") {
+        makeDirectory(path.dirname(file), () => {
+            fs.writeFile(file, content[file], err => handleWriteFile(err, file, done));
+        });
+        return;
+    }
+    throw err;
 }
 
 /**
@@ -98,6 +94,7 @@ function createAbsentFile(file, done) {
  */
 function makeDirectory(directory, allDone) {
     async.each(getDirectorySequence(directory), (directory, done) => {
+        console.log("making... " + directory);
         fs.mkdir(directory, err => handleDirectoryMade(err, done));
     }, err => handleComplete(err, allDone, "makeDirectory"));
 }
@@ -128,6 +125,22 @@ function handleDirectoryMade(err, done) {
         if (err.code !== "EEXIST") {
             showError(err, "makeDirectory");
         }
+    }
+    done();
+}
+
+/**
+ * Async completion handler for creating a file.
+ * @param {Object} err Error details.
+ * @param {string} file The path to created file.
+ * @param {Function} done A callback to trigger upon completion.
+ */
+function handleWriteFile(err, file, done) {
+    if (err) {
+        showError(err, "createAbsentFile");
+    }
+    else {
+        console.log("File " + file + " created");
     }
     done();
 }
